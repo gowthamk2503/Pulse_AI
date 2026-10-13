@@ -48,7 +48,8 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Mount routes
+# Mount routes at both /api and root / so any client configuration works seamlessly
+app.include_router(router, prefix="/api")
 app.include_router(router)
 
 # Support both GET and HEAD for Render/cloud port health checks

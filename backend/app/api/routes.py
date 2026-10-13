@@ -22,7 +22,7 @@ from app.database.db import (
     get_analyses_count
 )
 
-router = APIRouter(prefix="/api")
+router = APIRouter()
 
 def get_current_user_optional(authorization: Optional[str] = Header(None)) -> Optional[dict]:
     if not authorization:
