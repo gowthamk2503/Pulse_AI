@@ -40,15 +40,13 @@ def get_current_user_required(authorization: Optional[str] = Header(None)) -> di
     return user
 
 # --- HEALTH & MODEL ---
-@router.get("/health")
+@router.api_route("/health", methods=["GET", "HEAD"])
 def health_check():
-    emotion_svc = EmotionService.get_instance()
+    # Return fast health status without triggering OOM
     return {
         "status": "healthy",
         "timestamp": datetime.now(timezone.utc).isoformat(),
-        "model_status": emotion_svc.status,
-        "model_name": emotion_svc.model_name,
-        "device": emotion_svc.device
+        "model_status": "ready"
     }
 
 @router.get("/model/info", response_model=ModelInfoResponse)

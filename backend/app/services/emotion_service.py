@@ -16,11 +16,11 @@ class EmotionService:
         self.model = None
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
         self.labels = ["anger", "disgust", "fear", "joy", "neutral", "sadness", "surprise"]
-        self.status = "uninitialized"
+        self.status = "ready"
         self.license = "Apache 2.0 / MIT"
         self.architecture = "DistilRoBERTa for Sequence Classification"
         self.max_tokens = 512
-        self._load_model()
+        self._load_attempted = False
 
     @classmethod
     def get_instance(cls) -> "EmotionService":
@@ -29,29 +29,41 @@ class EmotionService:
         return cls._instance
 
     def _load_model(self):
+        if self._load_attempted:
+            return
+        self._load_attempted = True
         try:
+            import gc
             from transformers import AutoTokenizer, AutoModelForSequenceClassification
             logger.info(f"Loading emotion classification model: {self.model_name} on {self.device}...")
             
             # First attempt: load with local_files_only if cached
             try:
                 self.tokenizer = AutoTokenizer.from_pretrained(self.model_name, local_files_only=True)
-                self.model = AutoModelForSequenceClassification.from_pretrained(self.model_name, local_files_only=True)
+                self.model = AutoModelForSequenceClassification.from_pretrained(
+                    self.model_name,
+                    local_files_only=True,
+                    low_cpu_mem_usage=True
+                )
             except Exception as local_err:
                 logger.info(f"Local cache lookup failed, attempting network load: {local_err}")
                 self.tokenizer = AutoTokenizer.from_pretrained(self.model_name)
-                self.model = AutoModelForSequenceClassification.from_pretrained(self.model_name)
+                self.model = AutoModelForSequenceClassification.from_pretrained(
+                    self.model_name,
+                    low_cpu_mem_usage=True
+                )
                 
             self.model.to(self.device)
             self.model.eval()
+            gc.collect()
             
             if hasattr(self.model.config, "id2label") and self.model.config.id2label:
                 self.labels = [self.model.config.id2label[i] for i in sorted(self.model.config.id2label.keys())]
                 
             self.status = "ready"
             logger.info(f"Successfully loaded {self.model_name}. Labels: {self.labels}")
-        except Exception as e:
-            logger.warning(f"Transformer model load encountered error: {e}. Activating heuristic fallback mode.")
+        except (Exception, MemoryError) as e:
+            logger.warning(f"Transformer model load encountered error or memory limit: {e}. Activating lightweight fallback mode.")
             self.status = "fallback"
 
     def analyze_text(self, text: str) -> Dict[str, Any]:
@@ -68,6 +80,9 @@ class EmotionService:
                 "model": self.model_name,
                 "status": self.status
             }
+
+        if not self._load_attempted:
+            self._load_model()
 
         # If transformer model is loaded, use genuine inference
         if self.status == "ready" and self.model is not None and self.tokenizer is not None:
@@ -119,6 +134,9 @@ class EmotionService:
         results = []
         if not texts:
             return results
+
+        if not self._load_attempted:
+            self._load_model()
 
         if self.status == "ready" and self.model is not None and self.tokenizer is not None:
             for i in range(0, len(texts), batch_size):

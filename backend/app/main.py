@@ -1,10 +1,9 @@
 import os
 import logging
 from contextlib import asynccontextmanager
-from fastapi import FastAPI
+from fastapi import FastAPI, Response
 from fastapi.middleware.cors import CORSMiddleware
 from app.database.db import init_db
-from app.services.emotion_service import EmotionService
 from app.api.routes import router
 
 logging.basicConfig(
@@ -13,14 +12,19 @@ logging.basicConfig(
 )
 logger = logging.getLogger("pulseai")
 
+# Configure PyTorch memory efficiency if torch is available
+try:
+    import torch
+    torch.set_num_threads(1)
+except Exception:
+    pass
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Startup: initialize database and load model singleton
+    # Startup: initialize database quickly without blocking server binding
     logger.info("Initializing PulseAI database...")
     init_db()
-    logger.info("Initializing Emotion Intelligence model...")
-    EmotionService.get_instance()
-    logger.info("PulseAI Backend is ready.")
+    logger.info("PulseAI Backend startup complete.")
     yield
     # Shutdown
     logger.info("Shutting down PulseAI Backend.")
@@ -32,8 +36,8 @@ app = FastAPI(
     lifespan=lifespan
 )
 
-# CORS configuration
-origins_env = os.environ.get("CORS_ORIGINS", "http://localhost:5173,http://127.0.0.1:5173,http://localhost:3000")
+# CORS configuration - Allow all origins or specified
+origins_env = os.environ.get("CORS_ORIGINS", "*")
 allowed_origins = [o.strip() for o in origins_env.split(",") if o.strip()]
 
 app.add_middleware(
@@ -47,8 +51,9 @@ app.add_middleware(
 # Mount routes
 app.include_router(router)
 
-@app.get("/")
-def root():
+# Support both GET and HEAD for Render/cloud port health checks
+@app.api_route("/", methods=["GET", "HEAD"])
+def root(response: Response):
     return {
         "app": "PulseAI — Emotion Intelligence Platform",
         "status": "online",
@@ -58,4 +63,5 @@ def root():
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run("app.main:app", host="0.0.0.0", port=8000, reload=True)
+    port = int(os.environ.get("PORT", 8000))
+    uvicorn.run("app.main:app", host="0.0.0.0", port=port, reload=False)
