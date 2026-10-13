@@ -36,16 +36,25 @@ app = FastAPI(
     lifespan=lifespan
 )
 
-# CORS configuration - Allow all origins or specified
-origins_env = os.environ.get("CORS_ORIGINS", "*")
-allowed_origins = [o.strip() for o in origins_env.split(",") if o.strip()]
+# CORS configuration - Allow Vercel frontend, local dev, custom origins, and any matching regex
+configured_origins = [
+    "https://pulse-ai-plum.vercel.app",
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+    "http://localhost:3000",
+]
+env_origins = os.environ.get("CORS_ORIGINS", "")
+if env_origins and env_origins != "*":
+    configured_origins.extend([o.strip() for o in env_origins.split(",") if o.strip()])
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=allowed_origins if allowed_origins else ["*"],
+    allow_origins=configured_origins,
+    allow_origin_regex=r"^https?:\/\/.*",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+    expose_headers=["*"],
 )
 
 # Mount routes at both /api and root / so any client configuration works seamlessly
