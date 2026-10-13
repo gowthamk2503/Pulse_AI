@@ -1,0 +1,90 @@
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    --bg-main: #F5F7FA;
+    --surface: #FFFFFF;
+    --brand-cobalt: #2457D6;
+    --brand-hover: #1948BB;
+    --text-primary: #17243B;
+    --text-secondary: #66758A;
+    --text-muted: #94A3B8;
+    --border-color: #E2E8F0;
+    
+    /* Emotion Soft Accents */
+    --soft-blue: #EAF1FF;
+    --soft-mint: #DDF6EC;
+    --soft-peach: #FFF0E3;
+    --soft-lavender: #F0ECFF;
+    --soft-rose: #FCE8ED;
+    --soft-pink: #FDE8F1;
+    --soft-slate: #F1F4F8;
+    
+    /* Semantic Status */
+    --success: #16856B;
+    --warning: #B96B26;
+    --error: #C9475B;
+  }
+
+  * {
+    border-color: #E2E8F0;
+  }
+
+  html {
+    scroll-behavior: smooth;
+    font-family: 'Plus Jakarta Sans', 'Inter', system-ui, -apple-system, sans-serif;
+  }
+
+  body {
+    background-color: #F5F7FA;
+    color: #17243B;
+    min-height: 100vh;
+    margin: 0;
+    overflow-x: hidden;
+  }
+}
+
+/* Custom Scrollbar for sleek analytics feel */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #F1F4F8;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #CBD5E1;
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #94A3B8;
+}
+
+/* Glassmorphism subtle surface */
+.surface-card {
+  background-color: #FFFFFF;
+  border: 1px solid #E2E8F0;
+  border-radius: 14px;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04), 0 1px 2px rgba(15, 23, 42, 0.02);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.surface-card:hover {
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.06), 0 1px 3px rgba(15, 23, 42, 0.04);
+}
+
+.surface-card-static {
+  background-color: #FFFFFF;
+  border: 1px solid #E2E8F0;
+  border-radius: 14px;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
+}
+
+/* Focus styles */
+button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-visible {
+  outline: 2px solid #2457D6;
+  outline-offset: 2px;
+}

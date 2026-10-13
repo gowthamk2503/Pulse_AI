@@ -1,0 +1,11 @@
+review_id,customer_name,review_text,rating,date
+1,Sarah Jenkins,"I am absolutely delighted with the fast shipping and exceptional customer service!",5,2026-03-01
+2,David Ross,"The software crashed right during my final presentation. Completely unacceptable and frustrating.",1,2026-03-02
+3,Elena Rostova,"The order arrived in a standard cardboard box on Tuesday morning as described.",3,2026-03-02
+4,Michael Chang,"I was shocked by how quickly the analytics dashboard rendered thousands of records!",5,2026-03-03
+5,Amina Patel,"We were extremely worried about the database migration, but everything went without any loss.",4,2026-03-03
+6,Thomas Wayne,"Deeply saddened to see our favorite legacy reporting tools retired from the portal.",2,2026-03-04
+7,Chloe Bennett,"The interface design is so clean and joyful to use every single day.",5,2026-03-05
+8,Arthur Dent,"This product is standard. It works as specified in the manual.",3,2026-03-05
+9,Bruce Wayne,"The unexpected downtime cost our enterprise team critical hours of productivity.",1,2026-03-06
+10,Diana Prince,"Thrilled with the emotional insight accuracy and speed!",5,2026-03-06
