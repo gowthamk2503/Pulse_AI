@@ -1,7 +1,8 @@
 import os
 import logging
 from contextlib import asynccontextmanager
-from fastapi import FastAPI, Response
+from fastapi import FastAPI, Response, Request
+from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from app.database.db import init_db
 from app.api.routes import router
@@ -56,6 +57,33 @@ app.add_middleware(
     allow_headers=["*"],
     expose_headers=["*"],
 )
+
+# Fail-safe CORS response middleware ensuring headers on preflight & unhandled errors
+@app.middleware("http")
+async def ensure_cors_headers(request: Request, call_next):
+    origin = request.headers.get("origin")
+    if request.method == "OPTIONS":
+        response = Response(status_code=200)
+    else:
+        try:
+            response = await call_next(request)
+        except Exception as exc:
+            logger.error(f"Unhandled server error: {exc}", exc_info=True)
+            response = JSONResponse(
+                status_code=500,
+                content={"detail": "An internal server error occurred."}
+            )
+
+    if origin:
+        response.headers["Access-Control-Allow-Origin"] = origin
+        response.headers["Access-Control-Allow-Credentials"] = "true"
+        response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS, HEAD, PATCH"
+        req_headers = request.headers.get("access-control-request-headers")
+        response.headers["Access-Control-Allow-Headers"] = req_headers if req_headers else "Authorization, Content-Type, Accept, Origin, X-Requested-With"
+        response.headers["Access-Control-Expose-Headers"] = "*"
+        response.headers["Access-Control-Max-Age"] = "86400"
+
+    return response
 
 # Mount routes at both /api and root / so any client configuration works seamlessly
 app.include_router(router, prefix="/api")

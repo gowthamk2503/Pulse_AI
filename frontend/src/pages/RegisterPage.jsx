@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { Activity, Eye, EyeOff, AlertCircle, ArrowRight, Lock, Mail, User } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 
 export const RegisterPage = () => {
+  const location = useLocation();
   const [fullName, setFullName] = useState('');
-  const [email, setEmail] = useState('');
+  const [email, setEmail] = useState(location.state?.email || '');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);

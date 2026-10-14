@@ -45,7 +45,7 @@ def create_user(email: str, full_name: str, password: str) -> Optional[Dict[str,
         "created_at": now
     }
 
-def authenticate_user(email: str, password: str) -> Optional[Dict[str, Any]]:
+def authenticate_user_details(email: str, password: str) -> Tuple[Optional[Dict[str, Any]], Optional[str]]:
     conn = get_db_connection()
     cursor = conn.cursor()
     cursor.execute("SELECT * FROM users WHERE LOWER(email) = LOWER(?)", (email.strip(),))
@@ -53,16 +53,20 @@ def authenticate_user(email: str, password: str) -> Optional[Dict[str, Any]]:
     conn.close()
     
     if not row:
-        return None
+        return None, "user_not_found"
     if not verify_password(password, row["password_hash"]):
-        return None
+        return None, "invalid_password"
         
     return {
         "id": row["id"],
         "email": row["email"],
         "full_name": row["full_name"],
         "created_at": row["created_at"]
-    }
+    }, None
+
+def authenticate_user(email: str, password: str) -> Optional[Dict[str, Any]]:
+    user, _ = authenticate_user_details(email, password)
+    return user
 
 def create_access_token(user_id: int) -> str:
     token = secrets.token_urlsafe(32)

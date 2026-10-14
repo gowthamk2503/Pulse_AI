@@ -9,7 +9,7 @@ const API_BASE_URL = rawBaseUrl;
 
 const apiClient = axios.create({
   baseURL: API_BASE_URL,
-  timeout: 60000,
+  timeout: 90000,
 });
 
 // Request interceptor to attach bearer token
@@ -24,12 +24,22 @@ apiClient.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
-// Response interceptor to handle errors cleanly
+// Response interceptor to handle errors cleanly & auto-retry on backend cold starts
 apiClient.interceptors.response.use(
   (response) => response,
-  (error) => {
+  async (error) => {
+    const { config } = error;
+    
+    // Auto-retry once on cold-start network glitch / wake-up
+    if (config && !config._retry && (error.code === 'ERR_NETWORK' || error.message?.includes('Network Error'))) {
+      config._retry = true;
+      console.warn('Network glitch detected (backend may be spinning up from cold sleep). Retrying request in 2.5s...');
+      await new Promise((resolve) => setTimeout(resolve, 2500));
+      return apiClient(config);
+    }
+
     if (error.response?.status === 401) {
-      // Optional: clear expired token if invalid
+      // Clear token if invalid on protected pages
       if (window.location.pathname.startsWith('/dashboard') || 
           window.location.pathname.startsWith('/analyze') || 
           window.location.pathname.startsWith('/batch-analysis') || 

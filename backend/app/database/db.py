@@ -1,6 +1,8 @@
 import os
 import sqlite3
 import json
+import secrets
+import hashlib
 from datetime import datetime, timezone
 from typing import Optional, List, Dict, Any
 
@@ -71,8 +73,66 @@ def init_db():
     );
     """)
     
+    # Seed demo account and sample data if not present
+    seed_demo_data(cursor)
+    
     conn.commit()
     conn.close()
+
+def seed_demo_data(cursor: sqlite3.Cursor):
+    now = datetime.now(timezone.utc).isoformat()
+    # Check if demo account exists
+    cursor.execute("SELECT id FROM users WHERE LOWER(email) = LOWER('demo@pulseai.com')")
+    row = cursor.fetchone()
+    
+    if not row:
+        salt = secrets.token_hex(16)
+        key = hashlib.pbkdf2_hmac("sha256", "Password123!".encode("utf-8"), salt.encode("utf-8"), 100000)
+        pwd_hash = f"{salt}:{key.hex()}"
+        cursor.execute("""
+            INSERT INTO users (email, full_name, password_hash, created_at)
+            VALUES (?, ?, ?, ?)
+        """, ("demo@pulseai.com", "Demo Explorer", pwd_hash, now))
+        demo_id = cursor.lastrowid
+    else:
+        demo_id = row["id"] if isinstance(row, sqlite3.Row) else row[0]
+
+    # Check if demo analyses exist
+    cursor.execute("SELECT COUNT(*) FROM analyses WHERE user_id = ?", (demo_id,))
+    count_row = cursor.fetchone()
+    count = count_row[0] if count_row else 0
+    if count == 0:
+        samples = [
+            ("The AI emotion analytics platform exceeded our team's expectations. Truly remarkable results!", "joy", 0.9412, [
+                {"label": "joy", "score": 0.9412}, {"label": "surprise", "score": 0.0381}, {"label": "neutral", "score": 0.0125},
+                {"label": "anger", "score": 0.0032}, {"label": "fear", "score": 0.0024}, {"label": "sadness", "score": 0.0015}, {"label": "disgust", "score": 0.0011}
+            ]),
+            ("Customer response times were delayed by 48 hours without any prior notice.", "anger", 0.8845, [
+                {"label": "anger", "score": 0.8845}, {"label": "sadness", "score": 0.0612}, {"label": "disgust", "score": 0.0314},
+                {"label": "neutral", "score": 0.0121}, {"label": "fear", "score": 0.0065}, {"label": "surprise", "score": 0.0028}, {"label": "joy", "score": 0.0015}
+            ]),
+            ("We are worried that the upcoming cloud migration might cause intermittent downtime.", "fear", 0.8234, [
+                {"label": "fear", "score": 0.8234}, {"label": "sadness", "score": 0.0891}, {"label": "neutral", "score": 0.0521},
+                {"label": "anger", "score": 0.0215}, {"label": "surprise", "score": 0.0084}, {"label": "disgust", "score": 0.0039}, {"label": "joy", "score": 0.0016}
+            ]),
+            ("The shipment arrived on Tuesday as scheduled in standard packaging.", "neutral", 0.9120, [
+                {"label": "neutral", "score": 0.9120}, {"label": "joy", "score": 0.0415}, {"label": "surprise", "score": 0.0210},
+                {"label": "sadness", "score": 0.0112}, {"label": "anger", "score": 0.0068}, {"label": "fear", "score": 0.0049}, {"label": "disgust", "score": 0.0026}
+            ]),
+            ("I was totally shocked when the system processed 10,000 rows in less than 3 seconds!", "surprise", 0.8973, [
+                {"label": "surprise", "score": 0.8973}, {"label": "joy", "score": 0.0631}, {"label": "neutral", "score": 0.0218},
+                {"label": "fear", "score": 0.0089}, {"label": "anger", "score": 0.0044}, {"label": "sadness", "score": 0.0028}, {"label": "disgust", "score": 0.0017}
+            ]),
+            ("Deeply disheartened by the unexpected cancellation of our annual summit.", "sadness", 0.8654, [
+                {"label": "sadness", "score": 0.8654}, {"label": "anger", "score": 0.0712}, {"label": "disgust", "score": 0.0321},
+                {"label": "neutral", "score": 0.0189}, {"label": "fear", "score": 0.0078}, {"label": "surprise", "score": 0.0031}, {"label": "joy", "score": 0.0015}
+            ]),
+        ]
+        for text, label, conf, scores in samples:
+            cursor.execute("""
+                INSERT INTO analyses (user_id, source_type, text_content, predicted_label, confidence_score, all_scores, model_name, batch_id, created_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """, (demo_id, "single", text, label, conf, json.dumps(scores), "j-hartmann/emotion-english-distilroberta-base", None, now))
 
 # Analysis DAO functions
 def insert_analysis(

@@ -13,7 +13,7 @@ from app.services.emotion_service import EmotionService
 from app.services.csv_service import CSVService
 from app.services.analytics_service import AnalyticsService
 from app.services.auth_service import (
-    create_user, authenticate_user, create_access_token,
+    create_user, authenticate_user, authenticate_user_details, create_access_token,
     get_user_by_token, update_user_profile
 )
 from app.database.db import (
@@ -69,9 +69,18 @@ def register(req: UserRegisterRequest):
 
 @router.post("/auth/login", response_model=AuthTokenResponse)
 def login(req: UserLoginRequest):
-    user = authenticate_user(email=req.email, password=req.password)
+    user, reason = authenticate_user_details(email=req.email, password=req.password)
     if not user:
-        raise HTTPException(status_code=401, detail="Invalid email or password.")
+        if reason == "user_not_found":
+            raise HTTPException(
+                status_code=401,
+                detail="No account found with this email. Please click 'Create free account' below to sign up."
+            )
+        else:
+            raise HTTPException(
+                status_code=401,
+                detail="Invalid password. Please check your password and try again."
+            )
     token = create_access_token(user["id"])
     return {
         "access_token": token,

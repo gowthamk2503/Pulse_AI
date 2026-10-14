@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { Activity, Eye, EyeOff, AlertCircle, ArrowRight, Lock, Mail } from 'lucide-react';
+import { Activity, Eye, EyeOff, AlertCircle, ArrowRight, Lock, Mail, Sparkles } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+import { api } from '../services/api';
 
 export const LoginPage = () => {
   const [email, setEmail] = useState('');
@@ -15,6 +16,33 @@ export const LoginPage = () => {
   const location = useLocation();
 
   const from = location.state?.from?.pathname || '/dashboard';
+
+  const handleDemoLogin = async () => {
+    setEmail('demo@pulseai.com');
+    setPassword('Password123!');
+    setError('');
+    setLoading(true);
+    try {
+      await login('demo@pulseai.com', 'Password123!');
+      navigate(from, { replace: true });
+    } catch (err) {
+      console.warn('Direct demo login failed, attempting auto-registration...', err);
+      try {
+        await api.register({
+          email: 'demo@pulseai.com',
+          full_name: 'Demo Explorer',
+          password: 'Password123!'
+        });
+        await login('demo@pulseai.com', 'Password123!');
+        navigate(from, { replace: true });
+      } catch (regErr) {
+        console.error('Demo auto-register failed:', regErr);
+        setError(regErr.response?.data?.detail || err.response?.data?.detail || 'Demo login failed.');
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -58,10 +86,54 @@ export const LoginPage = () => {
 
       <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md px-4 sm:px-0">
         <div className="surface-card p-8 border border-[#E2E8F0] rounded-2xl bg-white shadow-lg shadow-[#17243B]/5">
+          {/* Quick Demo Access Card */}
+          <div className="mb-6 p-4 rounded-xl bg-gradient-to-r from-[#EEF4FF] to-[#F5F8FF] border border-[#BFD5FE]/70 flex flex-col sm:flex-row items-center justify-between gap-3">
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-lg bg-[#2457D6]/10 flex items-center justify-center text-[#2457D6] shrink-0">
+                <Sparkles className="w-4 h-4" />
+              </div>
+              <div className="text-left">
+                <div className="text-xs font-bold text-[#17243B]">Exploring PulseAI?</div>
+                <div className="text-[11px] text-[#66758A]">Sign in with 1-click using pre-populated demo data</div>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={handleDemoLogin}
+              disabled={loading}
+              className="w-full sm:w-auto px-3.5 py-1.5 text-xs font-semibold text-white bg-[#2457D6] hover:bg-[#1948BB] rounded-lg transition-colors shadow-xs cursor-pointer whitespace-nowrap shrink-0 disabled:opacity-50"
+            >
+              Demo Sign In
+            </button>
+          </div>
+
+          <div className="relative mb-6">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-[#E2E8F0]" />
+            </div>
+            <div className="relative flex justify-center text-[11px] uppercase">
+              <span className="bg-white px-3 text-[#94A3B8] font-semibold tracking-wider">Or sign in with email</span>
+            </div>
+          </div>
+
           {error && (
-            <div className="mb-6 p-4 rounded-xl bg-[#FCE8ED] border border-[#F7C4CE] text-[#C9475B] text-xs flex items-center gap-2">
-              <AlertCircle className="w-4 h-4 shrink-0" />
-              <span>{error}</span>
+            <div className="mb-6 p-4 rounded-xl bg-[#FCE8ED] border border-[#F7C4CE] text-[#C9475B] text-xs flex flex-col gap-2">
+              <div className="flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 shrink-0" />
+                <span className="font-medium">{error}</span>
+              </div>
+              {(error.toLowerCase().includes('no account') || error.toLowerCase().includes('register') || error.toLowerCase().includes('not found') || error.toLowerCase().includes('invalid email or password')) && (
+                <div className="pt-2 border-t border-[#F7C4CE]/50 flex items-center justify-between">
+                  <span className="text-[11px] text-[#A83244]">Don't have an account on this server?</span>
+                  <Link
+                    to="/register"
+                    state={{ email }}
+                    className="font-bold text-[#2457D6] hover:underline inline-flex items-center gap-1"
+                  >
+                    Create account now →
+                  </Link>
+                </div>
+              )}
             </div>
           )}
 
